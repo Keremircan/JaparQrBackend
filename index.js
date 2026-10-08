@@ -117,6 +117,11 @@ app.post("/api/verify", async (req, res) => {
       message: "Güvenlik Uyarısı: Bu karekod az önce kullanıldı!" 
     });
   }
+  // Kodu 55 saniye belleğe kilitle
+  usedTokens.add(token);
+  setTimeout(() => {
+    usedTokens.delete(token);
+  }, 55000);
 
   try {
     // 3. PostgreSQL Personel Sorgusu (registered_hardware_id sütununa göre)
@@ -157,12 +162,6 @@ app.post("/api/verify", async (req, res) => {
         [employee.employee_code, factoryId, gateId, hardwareId, type]
     );
 
-    // Kodu 55 saniye belleğe kilitle
-    usedTokens.add(token);
-    setTimeout(() => {
-        usedTokens.delete(token);
-    }, 55000);
-
     const logRecord = logQuery.rows[0];
     console.log(`[DB Kayıt Başarılı] ID: ${logRecord.id} | ${type} | ${employee.full_name} | Kapı: ${gateId}`);
 
@@ -179,7 +178,49 @@ app.post("/api/verify", async (req, res) => {
     return res.status(500).json({ success: false, message: "Sunucu veritabanı hatası oluştu." });
   }
 });
+// POST /api/login
+app.post('/api/login', async (req, res) => {
+  const { employeeCode, password } = req.body;
 
+  if (!employeeCode || !password) {
+    return res.status(400).json({ success: false, message: "Sicil no ve şifre gereklidir." });
+  }
+
+  try {
+    const result = await pool.query(
+      'SELECT id, employee_code, full_name, password_hash, is_active FROM employees WHERE employee_code = $1',
+      [employeeCode]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Kullanıcı bulunamadı." });
+    }
+
+    const employee = result.rows[0];
+
+    if (!employee.is_active) {
+      return res.status(403).json({ success: false, message: "Hesabınız pasif durumdadır." });
+    }
+
+    // Şimdilik düz metin kontrolü (İleride bcrypt.compare yapabilirsiniz)
+    if (employee.password_hash !== password) {
+      return res.status(401).json({ success: false, message: "Hatalı şifre girdiniz." });
+    }
+
+    return res.json({
+      success: true,
+      message: "Giriş başarılı.",
+      user: {
+        id: employee.id,
+        employeeCode: employee.employee_code,
+        fullName: employee.full_name
+      }
+    });
+  } catch (error) {
+    console.error("Login Hatası:", error);
+    return res.status(500).json({ success: false, message: "Sunucu hatası oluştu." });
+  }
+});
 // ========================================================
 // 5. SUNUCUYU BAŞLAT
 // ========================================================
