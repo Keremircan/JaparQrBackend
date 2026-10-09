@@ -3,6 +3,7 @@ const cors = require("cors");
 const CryptoJS = require("crypto-js");
 const OTPAuth = require("otpauth");
 const { Pool } = require("pg");
+const bcrypt = require("bcryptjs");
 
 const app = express();
 app.use(cors());
@@ -259,7 +260,12 @@ app.post("/api/login", async (req, res) => {
     }
 
     // Şimdilik düz metin kontrolü (İleride bcrypt.compare yapabilirsiniz)
-    if (employee.password_hash !== password) {
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      employee.password_hash,
+    );
+
+    if (!isPasswordValid) {
       return res
         .status(401)
         .json({ success: false, message: "Hatalı şifre girdiniz." });
@@ -275,7 +281,7 @@ app.post("/api/login", async (req, res) => {
         department: employee.department,
         job: employee.job,
         shift: employee.shift,
-        shift_type: employee.shift_type
+        shift_type: employee.shift_type,
       },
     });
   } catch (error) {
