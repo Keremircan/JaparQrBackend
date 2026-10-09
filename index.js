@@ -34,7 +34,7 @@ const totp = new OTPAuth.TOTP({
   label: "Gate-01",
   algorithm: "SHA256",
   digits: 6,
-  period: 50,
+  period: 10,
   secret: OTPAuth.Secret.fromBase32(SHARED_SECRET_BASE32),
 });
 
@@ -60,7 +60,7 @@ function verifyQRData(qrString) {
 
     const delta = totp.validate({
       token: payload.t,
-      window: 1, // +- 50 saniyelik ağ gecikmesi payı
+      window: 1, // +- 10 saniyelik ağ gecikmesi payı
     });
 
     if (delta === null) {
@@ -121,7 +121,7 @@ app.post("/api/verify", async (req, res) => {
   usedTokens.add(token);
   setTimeout(() => {
     usedTokens.delete(token);
-  }, 55000);
+  }, 10000);
 
   try {
     // 3. PostgreSQL Personel Sorgusu (registered_hardware_id sütununa göre)
@@ -240,7 +240,7 @@ app.post("/api/login", async (req, res) => {
 
   try {
     const result = await pool.query(
-      "SELECT id, employee_code, full_name, password_hash, is_active FROM employees WHERE employee_code = $1",
+      "SELECT id, employee_code, full_name, password_hash, is_active, department, job, shift, shift_type FROM employees WHERE employee_code = $1",
       [employeeCode],
     );
 
@@ -272,6 +272,10 @@ app.post("/api/login", async (req, res) => {
         id: employee.id,
         employeeCode: employee.employee_code,
         fullName: employee.full_name,
+        department: employee.department,
+        job: employee.job,
+        shift: employee.shift,
+        shift_type: employee.shift_type
       },
     });
   } catch (error) {
