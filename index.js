@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 const CryptoJS = require("crypto-js");
@@ -13,11 +15,11 @@ app.use(express.json());
 // 1. POSTGRESQL BAĞLANTISI
 // ========================================================
 const pool = new Pool({
-  user: "postgres",
-  host: "localhost",
-  database: "JaparQrSystemDb",
-  password: "Kerem2727*.",
-  port: 5432,
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD,
+  port: Number(process.env.DB_PORT) || 5432,
 });
 
 pool.on("connect", () => {
@@ -27,8 +29,8 @@ pool.on("connect", () => {
 // ========================================================
 // 2. SİSTEM AYARLARI (KioskScreen ile BİREBİR AYNI)
 // ========================================================
-const SHARED_SECRET_BASE32 = "JBSWY3DPEHPK3PXP";
-const AES_SECRET_KEY = "12345678901234567890123456789012";
+const SHARED_SECRET_BASE32 = process.env.SHARED_SECRET_BASE32;
+const AES_SECRET_KEY = process.env.AES_SECRET_KEY;
 
 const totp = new OTPAuth.TOTP({
   issuer: "FactorySystem",
